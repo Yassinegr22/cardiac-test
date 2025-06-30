@@ -11,6 +11,7 @@
       text-align: center;
       padding: 2rem;
       color: #212529;
+      margin: 0;
     }
     h1, h2 {
       font-weight: 600;
@@ -36,6 +37,10 @@
       background-color: #f1f3f5;
       color: #212529;
       border: 1px solid #dee2e6;
+      display: block;
+      width: 100%;
+      max-width: 400px;
+      margin: 0.5rem auto;
     }
     #answers button:hover {
       background-color: #e9ecef;
@@ -46,7 +51,8 @@
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       padding: 1rem;
       margin: 1rem auto;
-      width: 80%;
+      width: 90%;
+      max-width: 600px;
     }
     #timer {
       font-size: 1.2rem;
@@ -59,6 +65,18 @@
       background: #ffffff;
       border-radius: 20px;
       box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 600px;
+      height: auto;
+    }
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+      button {
+        width: 90%;
+        font-size: 1rem;
+      }
     }
   </style>
 </head>
@@ -93,8 +111,8 @@
       { src: './pericardial_friction_rub_fr.mp3', correct: 'Pericardial Friction Rub' },
       { src: './summation_gallop_fr.mp3', correct: 'Summation Gallop' },
       { src: './claquement_douverture.mp3', correct: "Claquement d'ouverture" },
-      { src: './dedoublement_2nd_heart_sound_fr.mp3', correct: 'Dedoublement du 2e bruit' },
-      { src: './souffle_ejectionnel_crescendo.mp3', correct: 'Souffle ejectionnel crescendo' }
+      { src: './dedoublement_2nd_heart_sound_fr.mp3', correct: 'Dédoublement du 2e bruit' },
+      { src: './souffle_ejectionnel_crescendo.mp3', correct: 'Souffle éjectionnel crescendo' }
     ];
 
     let shuffledQuestions = [];
@@ -111,7 +129,6 @@
     analyser.fftSize = 64;
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
-    let replayCount = 0;
 
     function startVisualizer() {
       const source = audioCtx.createMediaElementSource(audio);
@@ -170,13 +187,11 @@
       const question = shuffledQuestions[currentIndex];
       audio.src = question.src;
       audio.load();
-      audio.oncanplaythrough = () => {
-        audio.play();
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-        startVisualizer();
-      };
+      audio.play();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      startVisualizer();
 
       const answers = document.getElementById('answers');
       answers.innerHTML = '';
