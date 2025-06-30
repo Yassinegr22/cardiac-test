@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cardiac Sounds Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(to right, #f8f9fa, #e9ecef);
+      text-align: center;
+      padding: 2rem;
+      color: #212529;
+    }
+    h1, h2 {
+      font-weight: 600;
+    }
+    .hidden {
+      display: none;
+    }
+    button {
+      padding: 12px 28px;
+      margin: 1rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #007BFF;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #answers button {
+      background-color: #f1f3f5;
+      color: #212529;
+      border: 1px solid #dee2e6;
+    }
+    #answers button:hover {
+      background-color: #e9ecef;
+    }
+    #resultSection div {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      margin: 1rem auto;
+      width: 80%;
+    }
+    #timer {
+      font-size: 1.2rem;
+      margin-top: 1rem;
+      color: #dc3545;
+    }
+    canvas {
+      display: block;
+      margin: 1rem auto;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>Cardiac Murmur Recognition Test</h1>
+
+  <div id="startSection">
+    <button onclick="startTest()">Start Test</button>
+  </div>
+
+  <div id="testSection" class="hidden">
+    <h2>Listen to the sound and identify it</h2>
+    <audio id="audioPlayer" controls></audio><br/>
+    <canvas id="visualizer" width="600" height="120"></canvas>
+    <div id="timer"></div>
+    <div id="answers"></div>
+    <div id="nextAudioContainer" class="hidden">
+      <button onclick="nextAudio()">Next Audio</button>
+    </div>
+  </div>
+
+  <div id="resultSection" class="hidden">
+    <h2>Results</h2>
+    <div id="resultOutput"></div>
+  </div>
+
+  <script>
+    const questions = [
+      { src: './adultCASE1.mp3', correct: 'Normal sound' },
+      { src: './adultCASE4.mp3', correct: 'Bicuspid aortic valve with aortic stenosis and insufficiency' },
+      { src: './adultCASE6.mp3', correct: 'Mitral valve insufficiency with mitral valve prolapse' },
+      { src: './pericardial_friction_rub_fr.mp3', correct: 'Pericardial Friction Rub' },
+      { src: './summation_gallop_fr.mp3', correct: 'Summation Gallop' },
+      { src: './claquement_douverture.mp3', correct: "Claquement d'ouverture" },
+      { src: './dedoublement_2nd_heart_sound_fr.mp3', correct: 'Dedoublement du 2e bruit' },
+      { src: './souffle_ejectionnel_crescendo.mp3', correct: 'Souffle ejectionnel crescendo' }
+    ];
+
+    let shuffledQuestions = [];
+    let userAnswers = [];
+    let currentIndex = 0;
+    let timer;
+    let timeLeft = 180;
+
+    const audio = document.getElementById('audioPlayer');
+    const canvas = document.getElementById('visualizer');
+    const canvasCtx = canvas.getContext('2d');
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 64;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    let replayCount = 0;
+
+    function startVisualizer() {
+      const source = audioCtx.createMediaElementSource(audio);
+      source.connect(analyser);
+      analyser.connect(audioCtx.destination);
+
+      function draw() {
+        requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArray);
+
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        const barWidth = canvas.width / bufferLength;
+        for (let i = 0; i < bufferLength; i++) {
+          const value = dataArray[i];
+          const height = value;
+          const y = canvas.height / 2 - height / 2;
+          const hue = 210;
+          const lightness = 50 + (value / 512) * 50;
+          canvasCtx.fillStyle = `hsl(${hue}, 100%, ${lightness}%)`;
+          canvasCtx.fillRect(i * barWidth, y, barWidth - 2, height);
+        }
+      }
+      draw();
+    }
+
+    function startTest() {
+      document.getElementById('startSection').classList.add('hidden');
+      document.getElementById('testSection').classList.remove('hidden');
+      shuffledQuestions = [...questions].sort(() => 0.5 - Math.random());
+      startTimer();
+      loadQuestion();
+    }
+
+    function startTimer() {
+      const timerDisplay = document.getElementById('timer');
+      timer = setInterval(() => {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.textContent = `Time Left: ${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          finishTest();
+        }
+        timeLeft--;
+      }, 1000);
+    }
+
+    function loadQuestion() {
+      if (currentIndex >= shuffledQuestions.length) {
+        finishTest();
+        return;
+      }
+
+      document.getElementById('nextAudioContainer').classList.add('hidden');
+
+      const question = shuffledQuestions[currentIndex];
+      audio.src = question.src;
+      audio.load();
+      audio.oncanplaythrough = () => {
+        audio.play();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        startVisualizer();
+      };
+
+      const answers = document.getElementById('answers');
+      answers.innerHTML = '';
+      const options = [...new Set(questions.map(q => q.correct))].sort(() => 0.5 - Math.random());
+      options.forEach(option => {
+        const btn = document.createElement('button');
+        btn.innerText = option;
+        btn.onclick = () => {
+          userAnswers.push({ question, answer: option });
+          document.getElementById('nextAudioContainer').classList.remove('hidden');
+          answers.innerHTML = '';
+        };
+        answers.appendChild(btn);
+      });
+    }
+
+    function nextAudio() {
+      currentIndex++;
+      loadQuestion();
+    }
+
+    function finishTest() {
+      clearInterval(timer);
+      document.getElementById('testSection').classList.add('hidden');
+      document.getElementById('resultSection').classList.remove('hidden');
+
+      const resultOutput = document.getElementById('resultOutput');
+      resultOutput.innerHTML = '';
+      userAnswers.forEach((entry, index) => {
+        const result = document.createElement('div');
+        result.innerHTML = `
+          <strong>Question ${index + 1}:</strong><br/>
+          Your Answer: ${entry.answer}<br/>
+          Correct Answer: ${entry.question.correct}<br/>
+          ${entry.answer !== entry.question.correct ? `<audio controls src="${entry.question.src}"></audio><br/>` : ''}
+          <hr/>
+        `;
+        resultOutput.appendChild(result);
+      });
+    }
+  </script>
+</body>
+</html>
