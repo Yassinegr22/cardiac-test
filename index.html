@@ -45,6 +45,13 @@
     .center {
       text-align: center;
     }
+    #timer {
+      font-size: 20px;
+      text-align: center;
+      margin: 10px;
+      font-weight: bold;
+      color: #ff0000;
+    }
   </style>
 </head>
 <body>
@@ -57,6 +64,7 @@
   <div id="testSection" class="hidden">
     <h2>Listen to the sound and select the correct option</h2>
     <audio id="audioPlayer" controls></audio>
+    <div id="timer"></div>
     <div id="answers"></div>
     <div id="nextAudioContainer" class="hidden center">
       <button onclick="nextAudio()">Next Audio</button>
@@ -83,15 +91,26 @@
     let shuffledQuestions = [];
     let userAnswers = [];
     let currentIndex = 0;
+    let timerInterval;
 
     const audio = document.getElementById('audioPlayer');
+    const timerDisplay = document.getElementById('timer');
 
     function startTest() {
       document.getElementById('startSection').classList.add('hidden');
       document.getElementById('testSection').classList.remove('hidden');
-      shuffledQuestions = [...questions].sort(() => 0.5 - Math.random());
+      shuffledQuestions = shuffleArray(questions).slice(0, questions.length); // avoid duplicates
       currentIndex = 0;
       loadQuestion();
+    }
+
+    function shuffleArray(array) {
+      let arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
     }
 
     function loadQuestion() {
@@ -101,18 +120,17 @@
       const answersDiv = document.getElementById('answers');
       const nextBtn = document.getElementById('nextAudioContainer');
 
-      // Reset UI
       nextBtn.classList.add('hidden');
       answersDiv.innerHTML = '';
+      clearInterval(timerInterval);
+      startTimer(20); // 20 seconds per question
 
-      // Load audio
       audio.src = question.src;
       audio.load();
       audio.play();
 
-      // Create answer buttons
       const wrongOptions = questions
-        .filter((q, i) => i !== currentIndex)
+        .filter((q, i) => q.correct !== question.correct)
         .map(q => q.correct)
         .sort(() => 0.5 - Math.random())
         .slice(0, 3);
@@ -123,6 +141,7 @@
         btn.innerText = option;
         btn.onclick = () => {
           userAnswers.push({ question, answer: option });
+          clearInterval(timerInterval);
           answersDiv.querySelectorAll('button').forEach(b => {
             b.disabled = true;
             if (b.innerText === question.correct) {
@@ -137,6 +156,21 @@
         };
         answersDiv.appendChild(btn);
       });
+    }
+
+    function startTimer(seconds) {
+      let timeLeft = seconds;
+      timerDisplay.innerText = `Time left: ${timeLeft}s`;
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerDisplay.innerText = `Time left: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          timerDisplay.innerText = "Time's up!";
+          document.querySelectorAll('#answers button').forEach(b => b.disabled = true);
+          document.getElementById('nextAudioContainer').classList.remove('hidden');
+        }
+      }, 1000);
     }
 
     function nextAudio() {
