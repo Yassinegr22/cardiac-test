@@ -67,7 +67,7 @@
       box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 600px;
-      height: auto;
+      height: 100px;
     }
     @media (max-width: 600px) {
       body {
@@ -76,6 +76,9 @@
       button {
         width: 90%;
         font-size: 1rem;
+      }
+      canvas {
+        height: 60px;
       }
     }
   </style>
@@ -90,7 +93,7 @@
   <div id="testSection" class="hidden">
     <h2>Listen to the sound and identify it</h2>
     <audio id="audioPlayer" controls></audio><br/>
-    <canvas id="visualizer" width="600" height="120"></canvas>
+    <canvas id="visualizer" width="600" height="100"></canvas>
     <div id="timer"></div>
     <div id="answers"></div>
     <div id="nextAudioContainer" class="hidden">
@@ -146,9 +149,9 @@
           const height = value;
           const y = canvas.height / 2 - height / 2;
           const hue = 210;
-          const lightness = 50 + (value / 512) * 50;
-          canvasCtx.fillStyle = `hsl(${hue}, 100%, ${lightness}%)`;
-          canvasCtx.fillRect(i * barWidth, y, barWidth - 2, height);
+          const lightness = 60 + (value / 512) * 30;
+          canvasCtx.fillStyle = `hsl(${hue}, 80%, ${lightness}%)`;
+          canvasCtx.fillRect(i * barWidth, y, barWidth - 1, height);
         }
       }
       draw();
