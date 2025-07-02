@@ -90,7 +90,8 @@
   </div>
 
   <script>
-  const questions = [
+  
+  const cardiacQuestions = [
   { src: './auscultation-normale.mp3', correct: 'Auscultation normale' },
   { src: './claquement.mp3', correct: 'Claquement d’ouverture mitrale (COM - RM)' },
   { src: './Frottement-Pericardique.mp3', correct: 'Frottement Péricardique' },
@@ -102,6 +103,7 @@
   { src: './Retrecissement-aortique-souffle-systolique.mp3', correct: 'Rétrécissement aortique (souffle systolique)' },
   { src: './retrecissent-mitral-Roulement-diastolique.mp3', correct: 'Rétrécissement mitral (Roulement diastolique)' }
 ];
+const cardiacOptions = cardiacQuestions.map(q => q.correct);
 
 const pulmonaryQuestions = [
   { src: './les rales ronflants.mp3', correct: 'les rales ronflants' },
@@ -110,17 +112,18 @@ const pulmonaryQuestions = [
   { src: './le murmure vesiculaire.mp3', correct: 'le murmure vesiculaire (normale)' },
   { src: './stridore.mp3', correct: 'stridore' }
 ];
+const pulmonaryOptions = pulmonaryQuestions.map(q => q.correct);
+
 let currentMode = 'cardiac'; // or 'pulmonary'
+let shuffledQuestions = [];
+let userAnswers = [];
+let currentIndex = 0;
+let timerInterval;
 
-    let shuffledQuestions = [];
-    let userAnswers = [];
-    let currentIndex = 0;
-    let timerInterval;
+const audio = document.getElementById('audioPlayer');
+const timerDisplay = document.getElementById('timer');
 
-    const audio = document.getElementById('audioPlayer');
-    const timerDisplay = document.getElementById('timer');
-
-    function startCardiacTest() {
+function startCardiacTest() {
   currentMode = 'cardiac';
   startTest();
 }
@@ -134,11 +137,16 @@ function startTest() {
   document.getElementById('startSection').classList.add('hidden');
   document.getElementById('testSection').classList.remove('hidden');
 
-  const fullList = currentMode === 'cardiac' ? questions : pulmonaryQuestions;
+  const fullList = currentMode === 'cardiac' ? cardiacQuestions : pulmonaryQuestions;
   shuffledQuestions = shuffleArray(fullList);
   currentIndex = 0;
   userAnswers = [];
   loadQuestion();
+}
+
+function startPulmonaryTest() {
+  currentMode = 'pulmonary';
+  startTest();
 }
 
     function shuffleArray(array) {
@@ -151,49 +159,54 @@ function startTest() {
     }
 
     function loadQuestion() {
-      if (currentIndex >= shuffledQuestions.length) return finishTest();
+  if (currentIndex >= shuffledQuestions.length) return finishTest();
 
-      const question = shuffledQuestions[currentIndex];
-      const answersDiv = document.getElementById('answers');
-      const nextBtn = document.getElementById('nextAudioContainer');
+  const question = shuffledQuestions[currentIndex];
+  const answersDiv = document.getElementById('answers');
+  const nextBtn = document.getElementById('nextAudioContainer');
 
-      nextBtn.classList.add('hidden');
-      answersDiv.innerHTML = '';
+  nextBtn.classList.add('hidden');
+  answersDiv.innerHTML = '';
+  clearInterval(timerInterval);
+  startTimer(20); // Set question time limit
+
+  audio.src = question.src;
+  audio.load();
+  audio.play();
+
+  // Use only relevant option pool based on test mode
+  const optionPool = currentMode === 'cardiac' ? cardiacOptions : pulmonaryOptions;
+
+  const wrongOptions = optionPool
+    .filter(option => option !== question.correct)
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 3);
+
+  const options = [...wrongOptions, question.correct].sort(() => Math.random() - 0.5);
+
+  options.forEach(option => {
+    const btn = document.createElement('button');
+    btn.innerText = option;
+    btn.onclick = () => {
+      userAnswers.push({ question, answer: option });
       clearInterval(timerInterval);
-      startTimer(20); // 20 seconds per question
 
-      audio.src = question.src;
-      audio.load();
-      audio.play();
-
-      const wrongOptions = questions
-        .filter((q, i) => q.correct !== question.correct)
-        .map(q => q.correct)
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 3);
-
-      const options = [...wrongOptions, question.correct].sort(() => Math.random() - 0.5);
-      options.forEach(option => {
-        const btn = document.createElement('button');
-        btn.innerText = option;
-        btn.onclick = () => {
-          userAnswers.push({ question, answer: option });
-          clearInterval(timerInterval);
-          answersDiv.querySelectorAll('button').forEach(b => {
-            b.disabled = true;
-            if (b.innerText === question.correct) {
-              b.style.backgroundColor = 'green';
-              b.style.color = 'white';
-            } else if (b.innerText === option) {
-              b.style.backgroundColor = 'red';
-              b.style.color = 'white';
-            }
-          });
-          nextBtn.classList.remove('hidden');
-        };
-        answersDiv.appendChild(btn);
+      answersDiv.querySelectorAll('button').forEach(b => {
+        b.disabled = true;
+        if (b.innerText === question.correct) {
+          b.style.backgroundColor = 'green';
+          b.style.color = 'white';
+        } else if (b.innerText === option) {
+          b.style.backgroundColor = 'red';
+          b.style.color = 'white';
+        }
       });
-    }
+
+      nextBtn.classList.remove('hidden');
+    };
+    answersDiv.appendChild(btn);
+  });
+}
 
     function startTimer(seconds) {
       let timeLeft = seconds;
