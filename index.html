@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cardiac Murmur Recognition Test</title>
+  <title>Simulation Murmur Recognition Test</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -70,8 +70,9 @@
   <h1>Cardiac Murmur Recognition Test</h1>
 
   <div id="startSection" class="center">
-    <button onclick="startTest()">Start Test</button>
-  </div>
+  <button onclick="startCardiacTest()">Start Cardiac Test</button>
+  <button onclick="startPulmonaryTest()">Start Pulmonary Test</button>
+</div>
 
   <div id="testSection" class="hidden">
     <h2>Listen to the sound and select the correct option</h2>
@@ -89,7 +90,7 @@
   </div>
 
   <script>
-   const questions = [
+  const questions = [
   { src: './auscultation-normale.mp3', correct: 'Auscultation normale' },
   { src: './claquement.mp3', correct: 'Claquement d’ouverture mitrale (COM - RM)' },
   { src: './Frottement-Pericardique.mp3', correct: 'Frottement Péricardique' },
@@ -102,7 +103,14 @@
   { src: './retrecissent-mitral-Roulement-diastolique.mp3', correct: 'Rétrécissement mitral (Roulement diastolique)' }
 ];
 
-
+const pulmonaryQuestions = [
+  { src: './les rales ronflants.mp3', correct: 'les rales ronflants' },
+  { src: './les rales sibilants.mp3', correct: 'les rales sibilants' },
+  { src: './les rales crepitants.mp3', correct: 'les rales crepitants' },
+  { src: './le murmure vesiculaire.mp3', correct: 'le murmure vesiculaire (normale)' },
+  { src: './stridore.mp3', correct: 'stridore' }
+];
+let currentMode = 'cardiac'; // or 'pulmonary'
 
     let shuffledQuestions = [];
     let userAnswers = [];
@@ -112,13 +120,26 @@
     const audio = document.getElementById('audioPlayer');
     const timerDisplay = document.getElementById('timer');
 
-    function startTest() {
-      document.getElementById('startSection').classList.add('hidden');
-      document.getElementById('testSection').classList.remove('hidden');
-      shuffledQuestions = shuffleArray(questions).slice(0, questions.length); // avoid duplicates
-      currentIndex = 0;
-      loadQuestion();
-    }
+    function startCardiacTest() {
+  currentMode = 'cardiac';
+  startTest();
+}
+
+function startPulmonaryTest() {
+  currentMode = 'pulmonary';
+  startTest();
+}
+
+function startTest() {
+  document.getElementById('startSection').classList.add('hidden');
+  document.getElementById('testSection').classList.remove('hidden');
+
+  const fullList = currentMode === 'cardiac' ? questions : pulmonaryQuestions;
+  shuffledQuestions = shuffleArray(fullList);
+  currentIndex = 0;
+  userAnswers = [];
+  loadQuestion();
+}
 
     function shuffleArray(array) {
       let arr = [...array];
@@ -194,26 +215,51 @@
       loadQuestion();
     }
 
-    function finishTest() {
-      document.getElementById('testSection').classList.add('hidden');
-      document.getElementById('resultSection').classList.remove('hidden');
-      const resultOutput = document.getElementById('resultOutput');
-      resultOutput.innerHTML = '';
-      userAnswers.forEach((entry, index) => {
-        resultOutput.innerHTML += `
-          <div>
-            <strong>Question ${index + 1}</strong><br/>
-            Your Answer: ${entry.answer}<br/>
-            Correct Answer: ${entry.question.correct}<br/>
-            <audio controls src="${entry.question.src}"></audio>
-            <hr/>
-          </div>
-        `;
-      });
-    }
+  function finishTest() {
+  document.getElementById('testSection').classList.add('hidden');
+  document.getElementById('resultSection').classList.remove('hidden');
+  const resultOutput = document.getElementById('resultOutput');
+  resultOutput.innerHTML = '';
+
+  let correctCount = 0;
+  userAnswers.forEach((entry, index) => {
+    const isCorrect = entry.answer === entry.question.correct;
+    if (isCorrect) correctCount++;
+
+    resultOutput.innerHTML += `
+      <div>
+        <strong>Question ${index + 1}</strong><br/>
+        Your Answer: ${entry.answer}<br/>
+        Correct Answer: ${entry.question.correct}<br/>
+        <audio controls src="${entry.question.src}"></audio>
+        <hr/>
+      </div>
+    `;
+  });
+
+  // Add feedback message
+  const total = userAnswers.length;
+  let feedback = '';
+  const percentage = (correctCount / total) * 100;
+
+  if (percentage >= 90) {
+    feedback = '🟢 Excellent! Your auscultation skills are on point 👏';
+  } else if (percentage >= 60) {
+    feedback = '🟡 Good job! A little more practice will make you perfect 💪';
+  } else {
+    feedback = '🔴 Keep practicing — you’re on the right track! 🎧';
+  }
+
+  const scoreMessage = `
+    <h3 style="text-align:center;">Score: ${correctCount}/${total}</h3>
+    <p style="text-align:center; font-size:18px;">${feedback}</p>
+  `;
+  resultOutput.innerHTML = scoreMessage + resultOutput.innerHTML;
+}
   </script>
-  <footer>
-    لا تنسونا من صالح دعائكم
-  </footer>
+  
 </body>
+<footer>
+  لا تنسونا من صالح دعائكم
+</footer>
 </html>
